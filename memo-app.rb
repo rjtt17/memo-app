@@ -57,15 +57,14 @@ patch "/edit/:id" do
 end
 
 class Memo
-
-  def save(file,json_data)
-    File.open(file, 'w') do |file|
-      JSON.dump(json_data,file)
-    end  
+  def save(file, json_data)
+    File.open(file, "w") do |f|
+      JSON.dump(json_data, f)
+    end
   end
 
   def read(file)
-    File.open(file){|file| JSON.load(file)}
+    File.open(file) { |f| JSON.load(f) }
   end
 end
 
