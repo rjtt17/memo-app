@@ -1,0 +1,9 @@
+<h4><%= @title %></h4>
+<p><%= @body %></p>
+<p>
+  <%= btn_to(@url_edit,"編集") %>
+  <%= request_form(@url_top_id) %>
+  <input type="hidden" name="_method" value="delete">
+  <button type='submit' class='btn btn-primary' role='button'>削除</button>
+</p>
+</form>
