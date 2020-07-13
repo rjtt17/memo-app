@@ -5,17 +5,15 @@ require "sinatra/reloader"
 require "json"
 
 get "/top" do
-  unless File.exist?("memo.json") then Memo.new.save("memo.json", { "memos": [] }) end
-  @memo_array = Memo.new.read("memo.json")["memos"]
+  unless File.exist?("memo.json") then Memo.save("memo.json", { "memos": [] }) end
+  @memo_array = Memo.read("memo.json").array
   erb :top
 end
 
 post "/top" do
-  @memo = params["memo"].gsub(/[\r]/, "").split("\n")
-  @memo_hash = Memo.new.read("memo.json")
-  @new_memo = { id: @memo_hash["memos"].size + 1, title: @memo[0], body: @memo[1..-1].join("<br>") }
-  @memo_hash["memos"].append(@new_memo)
-  Memo.new.save("memo.json", @memo_hash)
+  post_memo = params["memo"].gsub(/[\r]/, "").split("\n")
+  memo = Memo.read("memo.json")
+  Memo.save("memo.json", memo.add_memo(memo, memo.array.size, post_memo))
   redirect "/top"
 end
 
@@ -24,47 +22,84 @@ get "/new" do
 end
 
 get "/show/:id" do
-  @memo_array = Memo.new.read("memo.json")["memos"]
-  @url_edit, @url_top_id, @url_top  = "/edit/" + params[:id], "/show/" + params[:id], "/top"
-  @title = @memo_array[params[:id].to_i - 1]["title"]
-  @body = @memo_array[params[:id].to_i - 1]["body"]
+  number = params[:id].to_i
+  memo = Memo.read("memo.json")
+  @url_edit, @url_top_id, @url_top  = "/edit/#{number}", "/show/#{number}", "/top"
+  @title, @body = memo.fetch_title(number - 1), memo.fetch_body(number - 1)
   erb :show
 end
 
 get "/edit/:id" do
-  @memo_array = Memo.new.read("memo.json")["memos"]
-  @url = "/edit/" + params[:id]
-  @title = @memo_array[params[:id].to_i - 1]["title"]
-  @body = @memo_array[params[:id].to_i - 1]["body"].gsub(/<br>/, "\n")
+  number = params[:id].to_i
+  memo = Memo.read("memo.json")
+  @url = "/edit/#{number}"
+  @title, @body = memo.fetch_title(number - 1), memo.fetch_body(number - 1).gsub(/<br>/, "\n")
   erb :edit
 end
 
 delete "/show/:id" do
-  @memo_hash = Memo.new.read("memo.json")
-  @memo_hash["memos"].delete_at(params["id"].to_i - 1)
-  @memo_hash["memos"].map.with_index(1) { |hash, index| hash["id"] = index }
-  Memo.new.save("memo.json", @memo_hash)
+  number = params[:id].to_i
+  memo = Memo.read("memo.json")
+  Memo.save("memo.json", memo.delete_memo(memo, number))
   redirect "/top"
 end
 
 patch "/edit/:id" do
-  @memo = params["memo"].gsub(/[\r]/, "").split("\n")
-  @memo_hash = Memo.new.read("memo.json")
-  @new_memo = { id: params["id"].to_i, title: @memo[0], body: @memo[1..-1].join("<br>") }
-  @memo_hash["memos"][params["id"].to_i - 1] = @new_memo
-  Memo.new.save("memo.json", @memo_hash)
+  number = params[:id].to_i
+  update_memo = params["memo"].gsub(/[\r]/, "").split("\n")
+  memo = Memo.read("memo.json")
+  Memo.save("memo.json", memo.update_memo(memo, number, update_memo))
   redirect "/top"
 end
 
 class Memo
-  def save(file, json_data)
+  attr_accessor :hash, :array
+
+  def self.save(file, json_data)
     File.open(file, "w") do |f|
       JSON.dump(json_data, f)
     end
   end
 
-  def read(file)
-    File.open(file) { |f| JSON.load(f) }
+  def self.read(file)
+    hash = File.open(file) { |f| JSON.load(f) }
+    Memo.new(hash)
+  end
+
+  def initialize(hash)
+    @hash = hash
+    @array = hash["memos"]
+  end
+
+  def fetch_id(number)
+    @array[number]["id"]
+  end
+
+  def fetch_title(number)
+    @array[number]["title"]
+  end
+
+  def fetch_body(number)
+    @array[number]["body"]
+  end
+
+  def add_memo(instance, id, contents)
+    memo_hash = instance.hash
+    memo_hash["memos"].append({ id: id + 1, title: contents[0], body: contents[1..-1].join("<br>") })
+    memo_hash
+  end
+
+  def update_memo(instance, id, contents)
+    memo_hash = instance.hash
+    memo_hash["memos"][id - 1] = { id: id, title: contents[0], body: contents[1..-1].join("<br>") }
+    memo_hash
+  end
+
+  def delete_memo(instance, id)
+    memo_hash = instance.hash
+    memo_hash["memos"].delete_at(id - 1)
+    memo_hash["memos"].map.with_index(1) { |hash, index| hash["id"] = index }
+    memo_hash
   end
 end
 
