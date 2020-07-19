@@ -11,9 +11,11 @@ get "/top" do
 end
 
 post "/top" do
-  post_memo = params["memo"].gsub(/[\r]/, "").split("\n")
+  p params
+  post_title = params["title"]
+  post_body = params["body"].gsub(/[\r]/, "").split("\n")
   memo = Memo.read("memo.json")
-  Memo.save("memo.json", memo.add_memo(memo, memo.array.size, post_memo))
+  Memo.save("memo.json", memo.add_memo(memo, memo.array.size, post_title, post_body))
   redirect "/top"
 end
 
@@ -46,9 +48,10 @@ end
 
 patch "/edit/:id" do
   number = params[:id].to_i
-  update_memo = params["memo"].gsub(/[\r]/, "").split("\n")
+  update_title = params["title"]
+  update_body = params["body"].gsub(/[\r]/, "").split("\n")
   memo = Memo.read("memo.json")
-  Memo.save("memo.json", memo.update_memo(memo, number, update_memo))
+  Memo.save("memo.json", memo.update_memo(memo, number, update_title, update_body))
   redirect "/top"
 end
 
@@ -83,15 +86,15 @@ class Memo
     @array[number]["body"]
   end
 
-  def add_memo(instance, id, contents)
+  def add_memo(instance, id, title, body)
     memo_hash = instance.hash
-    memo_hash["memos"].append({ id: id + 1, title: contents[0], body: contents[1..-1].join("<br>") })
+    memo_hash["memos"].append({ id: id + 1, title: title, body: body.join("<br>") })
     memo_hash
   end
 
-  def update_memo(instance, id, contents)
+  def update_memo(instance, id, title, body)
     memo_hash = instance.hash
-    memo_hash["memos"][id - 1] = { id: id, title: contents[0], body: contents[1..-1].join("<br>") }
+    memo_hash["memos"][id - 1] = { id: id, title: title, body: body.join("<br>") }
     memo_hash
   end
 
@@ -100,23 +103,5 @@ class Memo
     memo_hash["memos"].delete_at(id - 1)
     memo_hash["memos"].map.with_index(1) { |hash, index| hash["id"] = index }
     memo_hash
-  end
-end
-
-helpers do
-  def link_to(url, text)
-    %(<a href="/show/#{url}">#{text}</a>)
-  end
-end
-
-helpers do
-  def btn_to(url, text)
-    %(<a class="btn btn-primary" href="#{url}" role="button">#{text}</a>)
-  end
-end
-
-helpers do
-  def request_form(url)
-    %(<form action='#{url}' method='post'>)
   end
 end

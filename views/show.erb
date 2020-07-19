@@ -1,8 +1,8 @@
 <h4><%= @title %></h4>
 <p><%= @body %></p>
 <p>
-  <%= btn_to(@url_edit,"編集") %>
-  <%= request_form(@url_top_id) %>
+  <a class="btn btn-primary" href="<%= @url_edit %>" role="button">編集</a>
+  <form action="<%= @url_top_id %>" method='post'>
   <input type="hidden" name="_method" value="delete">
   <button type='submit' class='btn btn-primary' role='button'>削除</button>
 </p>

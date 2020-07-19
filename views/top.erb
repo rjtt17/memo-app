@@ -1,5 +1,5 @@
 <% @memo_array.each do |param| %>
-  <li><%= link_to(param["id"],param["title"]) %></a></li>
+  <li><a href="/show/<%= param["id"] %>"><%= param["title"] %></a></li>
 <% end %> 
 </br> 
 <a class="btn btn-primary" href="/new" role="button">追加</a>
