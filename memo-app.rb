@@ -29,7 +29,7 @@ end
 get "/show/:id" do
   number = params[:id].to_i
   memo = Memo.read("memo.json")
-  @title, @body , @number = memo.title(number - 1), memo.body(number - 1), number.to_s
+  @title, @body, @number = memo.title(number - 1), memo.body(number - 1), number.to_s
   erb :show
 end
 
