@@ -3,6 +3,7 @@
 require "sinatra"
 require "sinatra/reloader"
 require "json"
+require "pg"
 
 get "/top" do
   if File.exist?("memo.json")
