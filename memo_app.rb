@@ -52,8 +52,6 @@ patch "/edit/:id" do
   redirect "/top"
 end
 
-# memo[:id], memo[:title], memo[:body]
-
 class Memo
   attr_accessor :hash, :array
 
