@@ -70,7 +70,7 @@ class Memo
   end
 
   def self.connect
-    @connection = PG.connect(host: "localhost", user: "postgres", dbname: "memo_app", port: "5432")
+    @connection = PG.connect(host: ENV['HOST'] || 'localhost', user: ENV['USER'] || "postgres", dbname: ENV['DBNAME'] || "memo_app", port: ENV['PORT'] || "5432")
   end
 
   def initialize(hash)
