@@ -3,22 +3,18 @@
 require "sinatra"
 require "sinatra/reloader"
 require "json"
+require "pg"
 
 get "/top" do
-  if File.exist?("memo.json")
-    @memos = Memo.read("memo.json").array
-  else
-    Memo.save("memo.json", { "memos": [] })
-    @memos = Memo.read("memo.json").array
-  end
+  @memos = Memo.read.array
   erb :top
 end
 
 post "/top" do
   title = params["title"]
   body = params["body"].gsub(/[\r]/, "").split("\n")
-  memo = Memo.read("memo.json")
-  Memo.save("memo.json", memo.add_memo(memo.array.size, title, body))
+  memo = Memo.read
+  Memo.save(memo.add_memo(memo.array.size, title, body))
   redirect "/top"
 end
 
@@ -28,22 +24,22 @@ end
 
 get "/show/:id" do
   number = params[:id].to_i
-  memo = Memo.read("memo.json")
-  @title, @body , @number = memo.title(number - 1), memo.body(number - 1), number.to_s
+  memo = Memo.read
+  @title, @body, @number = memo.title(number - 1), memo.body(number - 1), number.to_s
   erb :show
 end
 
 get "/edit/:id" do
   number = params[:id].to_i
-  memo = Memo.read("memo.json")
+  memo = Memo.read
   @title, @body, @number = memo.title(number - 1), memo.body(number - 1).gsub(/<br>/, "\n"), number.to_s
   erb :edit
 end
 
 delete "/show/:id" do
   number = params[:id].to_i
-  memo = Memo.read("memo.json")
-  Memo.save("memo.json", memo.delete_memo(number))
+  memo = Memo.read
+  Memo.save(memo.delete_memo(number))
   redirect "/top"
 end
 
@@ -51,23 +47,30 @@ patch "/edit/:id" do
   number = params[:id].to_i
   title = params["title"]
   body = params["body"].gsub(/[\r]/, "").split("\n")
-  memo = Memo.read("memo.json")
-  Memo.save("memo.json", memo.update_memo(number, title, body))
+  memo = Memo.read
+  Memo.save(memo.update_memo(number, title, body))
   redirect "/top"
 end
 
 class Memo
   attr_accessor :hash, :array
 
-  def self.save(file, json_data)
-    File.open(file, "w") do |f|
-      JSON.dump(json_data, f)
+  def self.save(hash)
+    Memo.connect.exec_params("DELETE FROM memo;")
+    hash["memos"].each do |memo|
+      Memo.connect.exec_params("INSERT INTO memo (id, title, body) VALUES ($1, $2, $3)", [memo["id"], memo["title"], memo["body"]])
     end
   end
 
-  def self.read(file)
-    hash = File.open(file) { |f| JSON.load(f) }
+  def self.read
+    hash = {}
+    rows = Memo.connect.exec("SELECT * FROM memo ORDER BY id;")
+    hash["memos"] = rows.map { |row| row }
     Memo.new(hash)
+  end
+
+  def self.connect
+    @connection = PG.connect(host: ENV['HOST'] || 'localhost', user: ENV['USER'] || "postgres", dbname: ENV['DBNAME'] || "memo_app", port: ENV['PORT'] || "5432")
   end
 
   def initialize(hash)
@@ -88,12 +91,12 @@ class Memo
   end
 
   def add_memo(id, title, body)
-    @hash["memos"].append({ id: id + 1, title: title, body: body.join("<br>") })
+    @hash["memos"].append({ "id"=>"#{id + 1}", "title"=>"#{title}", "body"=>"#{body.join("<br>")}" })
     @hash
   end
 
   def update_memo(id, title, body)
-    @hash["memos"][id - 1] = { id: id, title: title, body: body.join("<br>") }
+    @hash["memos"][id - 1] = { "id"=>"#{id}", "title"=>"#{title}", "body"=>"#{body.join("<br>")}" }
     @hash
   end
 
